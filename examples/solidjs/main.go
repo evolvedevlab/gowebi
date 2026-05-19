@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"gosolid"
+	"gowebi"
 	"log"
 	"net/http"
 	"os"
@@ -15,7 +15,7 @@ type Data struct {
 
 // run: export ENVIRONMENT=development && node esbuild.config.js && go run .
 func main() {
-	app, err := gosolid.New(gosolid.Config{
+	app, err := gowebi.New(gowebi.Config{
 		BundleDir: "./dist",
 		IsDev:     os.Getenv("ENVIRONMENT") == "development",
 	})
@@ -32,7 +32,7 @@ func main() {
 		}
 
 		start := time.Now()
-		err := app.Renderer.Render(w, http.StatusOK, gosolid.RenderOptions{
+		err := app.Renderer.Render(w, http.StatusOK, gowebi.RenderOptions{
 			Name:  "web/pages/Home.jsx",
 			Props: Data{Msg: "gello"},
 		})

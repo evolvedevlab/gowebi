@@ -1,4 +1,4 @@
-module gosolid
+module gowebi
 
 go 1.25.0
 

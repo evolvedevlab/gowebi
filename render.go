@@ -1,4 +1,4 @@
-package gosolid
+package gowebi
 
 import (
 	"encoding/json"
