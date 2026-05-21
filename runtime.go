@@ -17,6 +17,29 @@ type Runtime struct {
 	Meta   goja.Callable
 }
 
+// runWithVM runs the loaded program in the provided vm.
+// meta function is optional and can be nil.
+// WARN: re-using existing vms can leak data across requests.
+func runWithVM(vm *goja.Runtime, program *goja.Program) (*Runtime, error) {
+	_, err := vm.RunProgram(program)
+	if err != nil {
+		return nil, fmt.Errorf("failed to run program: %+v", err)
+	}
+
+	render, ok := goja.AssertFunction(vm.Get("render"))
+	if !ok {
+		return nil, fmt.Errorf("failed to get the render function from vm")
+	}
+
+	meta, _ := goja.AssertFunction(vm.Get("meta"))
+
+	return &Runtime{
+		VM:     vm,
+		Render: render,
+		Meta:   meta,
+	}, nil
+}
+
 // runVM runs the loaded program in a new vm.
 // meta function is optional and can be nil.
 func runVM(program *goja.Program) (*Runtime, error) {
