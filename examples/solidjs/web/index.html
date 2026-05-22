@@ -15,7 +15,7 @@
   <body>
     <div id="app">{{.App}}</div>
 
-    {{if .Hydrate}}
+    {{if not .NoHydrate}}
         <script type="module" src="{{.HydrationScriptSrc}}"></script>
     {{end}}
   </body>

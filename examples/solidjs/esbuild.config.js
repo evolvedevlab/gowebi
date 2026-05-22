@@ -5,7 +5,7 @@ import { copyFile, mkdir, writeFile, rm } from "fs/promises";
 const isDev = process.env.ENVIRONMENT === "development";
 
 const shared = {
-  entryPoints: ["web/pages/*"],
+  entryPoints: ["web/pages/**/*"],
   bundle: true,
   metafile: true,
   sourcemap: true,

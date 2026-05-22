@@ -80,12 +80,11 @@ func (r *Render) Render(w http.ResponseWriter, status int, opts RenderOptions) e
 	w.Header().Add("Content-Type", "text/html; charset=utf8")
 	w.WriteHeader(status)
 	return r.tmpl.Execute(w, map[string]any{
-
 		"Meta":               metadata,
 		"Head":               template.HTML(head),
 		"App":                template.HTML(appHtml),
 		"HydrationScriptSrc": b.ClientPath,
-		"Hydrate":            !opts.NoHydrate,
+		"NoHydrate":          opts.NoHydrate,
 		"Props":              opts.Props,
 	})
 }

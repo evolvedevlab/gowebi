@@ -8,7 +8,6 @@ const meta = () => ({
 const Test = lazy(() => import("../Test"));
 
 const Home = (props) => {
-  console.log(props);
   const [count, setCount] = createSignal(0);
   const [isMounted, setMounted] = createSignal(false);
 

@@ -25,6 +25,13 @@ func main() {
 
 	// expose only the client bundle dir
 	http.Handle("/client/", gowebi.ServeBundle(app.BundleDir()))
+	http.HandleFunc("/dash", func(w http.ResponseWriter, r *http.Request) {
+		start := time.Now()
+		err := app.Renderer.Render(w, http.StatusOK, gowebi.RenderOptions{
+			Name: "web/pages/Dash.jsx",
+		})
+		log.Println("render error:", err, time.Since(start))
+	})
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/" {
 			http.NotFound(w, r)

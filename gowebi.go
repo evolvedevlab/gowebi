@@ -8,7 +8,16 @@ import (
 
 type Config struct {
 	BundleDir string
-	IsDev     bool
+	// Enables vm pool
+	// Default mode creates a new vm per request.
+	// Default pool size is 10.
+	// WARN: with this on, do not set global JS state (it might persist between requests).
+	UnsafePoolMode bool
+	UnsafePoolSize int
+	IsDev          bool
+
+	// TODO: yet to be implemented
+	SuppressServerConsoleLogs bool
 }
 
 type GoWebi struct {
@@ -41,9 +50,25 @@ func New(cfg Config) (*GoWebi, error) {
 		return nil, err
 	}
 
+	var renderer Renderer
+	if cfg.UnsafePoolMode {
+		if cfg.UnsafePoolSize == 0 {
+			cfg.UnsafePoolSize = 10
+		}
+
+		pool, err := newPool(cfg.UnsafePoolSize, bundles)
+		if err != nil {
+			return nil, err
+		}
+
+		renderer = NewPooledRenderer(pool, bundles, tmpl, cfg.IsDev)
+	} else {
+		renderer = NewRenderer(bundles, tmpl, cfg.IsDev)
+	}
+
 	return &GoWebi{
 		cfg:       cfg,
-		Renderer:  NewRenderer(bundles, tmpl, cfg.IsDev),
+		Renderer:  renderer,
 		bundleMap: bundles,
 	}, nil
 }

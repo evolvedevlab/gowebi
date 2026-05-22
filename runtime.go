@@ -7,6 +7,9 @@ import (
 	"github.com/dop251/goja"
 )
 
+var undefinedGojaFn = func(...goja.FunctionCall) goja.Value {
+	return goja.Undefined()
+}
 var clg = func(args ...any) {
 	log.Println(append([]any{"[JS]:"}, args...)...)
 }
