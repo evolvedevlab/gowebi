@@ -1,15 +1,21 @@
 package gowebi
 
 import (
+	"fmt"
 	"html/template"
+	"io/fs"
 	"os"
 	"path/filepath"
 )
 
-var cfg Config
+var cfg *Config
 
 type Config struct {
 	BundleDir string
+	// Needs to be set in production.
+	//
+	// example: //go:embed dist/*
+	BundleFS fs.FS
 	// Enables vm pooling for lower allocations and better performance.
 	// Default mode creates a new vm per request.
 	//
@@ -24,7 +30,7 @@ type Config struct {
 type GoWebi struct {
 	Renderer Renderer
 
-	cfg       Config
+	cfg       *Config
 	bundleMap map[string]*Bundle
 }
 
@@ -32,24 +38,35 @@ func (gw *GoWebi) BundleDir() string {
 	return gw.cfg.BundleDir
 }
 
-func New(c Config) (*GoWebi, error) {
+func New(c *Config) (*GoWebi, error) {
 	// set global cfg
 	cfg = c
+	if cfg.IsDev {
+		cfg.BundleFS = os.DirFS(cfg.BundleDir)
+	} else {
+		if cfg.BundleFS == nil {
+			return nil, fmt.Errorf("BundleFS is required in production")
+		}
 
-	tmpl, err := template.ParseFiles(filepath.Join(cfg.BundleDir, "index.html"))
+		var err error
+		cfg.BundleFS, err = fs.Sub(cfg.BundleFS, filepath.Clean(c.BundleDir))
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	tmpl, err := template.ParseFS(cfg.BundleFS, "index.html")
 	if err != nil {
 		return nil, err
 	}
 
-	metafile := filepath.Join(cfg.BundleDir, "metafile.json")
-
-	f, err := os.Open(metafile)
+	f, err := cfg.BundleFS.Open("metafile.json")
 	if err != nil {
 		return nil, err
 	}
 	defer f.Close()
 
-	bundles, err := bundleFromMetafile(f, cfg.BundleDir)
+	bundles, err := bundleFromMetafile(f)
 	if err != nil {
 		return nil, err
 	}

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"embed"
 	"fmt"
 	"gowebi"
 	"log"
@@ -13,10 +14,14 @@ type Data struct {
 	Msg string `json:"msg"`
 }
 
+//go:embed dist/*
+var dist embed.FS
+
 // run: export ENVIRONMENT=development && node esbuild.config.js && go run .
 func main() {
-	app, err := gowebi.New(gowebi.Config{
+	app, err := gowebi.New(&gowebi.Config{
 		BundleDir: "./dist",
+		BundleFS:  dist,
 		IsDev:     os.Getenv("ENVIRONMENT") != "production",
 	})
 	if err != nil {
