@@ -29,7 +29,7 @@ func main() {
 	}
 
 	// expose only the client bundle dir
-	http.Handle("/client/", gowebi.ServeBundle(app.BundleDir()))
+	http.Handle("/client/", gowebi.ServeBundle())
 	http.HandleFunc("/dash", func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
 		err := app.Renderer.Render(r.Context(), w, http.StatusOK, gowebi.RenderOptions{

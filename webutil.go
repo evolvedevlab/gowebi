@@ -2,10 +2,11 @@ package gowebi
 
 import (
 	"net/http"
-	"path/filepath"
 )
 
-func ServeBundle(dir string) http.Handler {
-	dir = filepath.Join(dir, "client")
-	return http.StripPrefix("/client/", http.FileServer(http.Dir(dir)))
+// Serves the contents of BundleDir.
+//
+// example: http.Handle("/client/", ServeBundle())
+func ServeBundle() http.Handler {
+	return http.FileServerFS(cfg.BundleFS)
 }

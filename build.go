@@ -50,25 +50,31 @@ func bundleFromMetafile(r io.Reader) (map[string]*Bundle, error) {
 		}
 	}
 
-	cacheDir, err := os.UserCacheDir()
-	if err != nil {
-		return nil, err
-	}
-	// writing all sourcemaps in temp dir from fs.FS
-	// this is needed as goja cannot use fs.FS to load sourcemaps
-	outDir := filepath.Join(cacheDir, "gowebi", "sourcemaps", getBuildHash())
-	if err := extractAndWriteSourcemaps(cfg.BundleFS, outDir); err != nil {
-		return nil, err
+	var gojaJSPath string
+	if !cfg.IsDev {
+		cacheDir, err := os.UserCacheDir()
+		if err != nil {
+			return nil, err
+		}
+		// writing all sourcemaps in temp dir from fs.FS
+		// this is needed as goja cannot use fs.FS to load sourcemaps
+		gojaJSPath = filepath.Join(cacheDir, "gowebi", getBuildHash(), "sourcemaps")
+		gojaJSPath = gojaJSPath + string(os.PathSeparator) // required by goja in prod
+		if err := extractAndWriteSourcemaps(cfg.BundleFS, gojaJSPath); err != nil {
+			return nil, err
+		}
 	}
 
 	for outPath, o := range mf.Server.Outputs {
 		if filepath.Ext(outPath) != ".js" {
 			continue
 		}
-
 		outPathRel, err := filepath.Rel(cfg.BundleDir, outPath)
 		if err != nil {
 			return nil, err
+		}
+		if cfg.IsDev {
+			gojaJSPath = outPath
 		}
 
 		// read server bundle js code
@@ -77,7 +83,7 @@ func bundleFromMetafile(r io.Reader) (map[string]*Bundle, error) {
 			return nil, err
 		}
 
-		program, err := goja.Compile(filepath.Join(outDir, "server")+string(os.PathSeparator), string(code), true)
+		program, err := goja.Compile(gojaJSPath, string(code), true)
 		if err != nil {
 			return nil, err
 		}
@@ -103,15 +109,19 @@ func bundleFromMetafile(r io.Reader) (map[string]*Bundle, error) {
 }
 
 func extractAndWriteSourcemaps(fsys fs.FS, outDir string) error {
+	if err := os.RemoveAll(outDir); err != nil {
+		return err
+	}
+	if err := os.MkdirAll(outDir, 0755); err != nil {
+		return err
+	}
 	return fs.WalkDir(fsys, ".", func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
-		// skip dirs
 		if d.IsDir() {
 			return nil
 		}
-		// skip files except .map
 		if filepath.Ext(path) != ".map" {
 			return nil
 		}
@@ -121,14 +131,7 @@ func extractAndWriteSourcemaps(fsys fs.FS, outDir string) error {
 			return err
 		}
 
-		target := filepath.Join(outDir, path)
-
-		// create parent dirs
-		err = os.MkdirAll(filepath.Dir(target), 0755)
-		if err != nil {
-			return err
-		}
-
+		target := filepath.Join(outDir, filepath.Base(path))
 		return os.WriteFile(target, data, 0644)
 	})
 }
