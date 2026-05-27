@@ -3,8 +3,6 @@ import { build } from "esbuild";
 import { solidPlugin } from "esbuild-plugin-solid";
 import { copyFile, mkdir, writeFile, rm } from "fs/promises";
 
-// Example json data from Go:
-// { goConfig: {...}, "server": {...}, "client": {...} }
 const cfg = JSON.parse(
   execSync("go run . -- -gowebi-esbuild-config", {
     encoding: "utf8",

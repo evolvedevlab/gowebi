@@ -6,7 +6,6 @@ import (
 	"gowebi"
 	"log"
 	"net/http"
-	"os"
 	"time"
 )
 
@@ -17,18 +16,9 @@ type Data struct {
 //go:embed dist/*
 var dist embed.FS
 
-// run: export ENVIRONMENT=development && node esbuild.config.js && go run .
+// run: make watch
 func main() {
-	cfg := &gowebi.Config{
-		BundleDir:         "./dist",
-		BundleFS:          dist,
-		AutoBrowserReload: true,
-		IsDev:             os.Getenv("ENVIRONMENT") != "production",
-	}
-
-	// should be registered before
-	gowebi.MustHandleInternalCmd(cfg)
-	app, err := gowebi.New(cfg)
+	app, err := gowebi.New(gowebi.WithBundleFS(dist), gowebi.WithUnsafePoolMode(true))
 	if err != nil {
 		log.Fatal(err)
 	}

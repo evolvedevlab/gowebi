@@ -39,7 +39,7 @@ func bundlesFromMetafile(sr, cr io.Reader, cfg *Config) (map[string]*Bundle, err
 	)
 	// As goja cannot use fs.FS to load sourcemaps
 	// In prod, we write the server sourcemaps to filesystem from fs.FS
-	gojaJSPath, err := prepareGojaSourcemaps(cfg.IsDev)
+	gojaJSPath, err := prepareGojaSourcemaps(cfg.BundleFS, cfg.IsDev)
 	if err != nil {
 		return nil, err
 	}
@@ -89,7 +89,12 @@ func bundlesFromMetafile(sr, cr io.Reader, cfg *Config) (map[string]*Bundle, err
 }
 
 // if given entrypoint is not found, it will return nil, nil
-func devBundleFromEntrypoint(fsys fs.FS, entrypoint string) (*Bundle, error) {
+func devBundleFromEntrypoint(cfg *Config, entrypoint string) (*Bundle, error) {
+	var (
+		fsys = cfg.BundleFS
+		dir  = cfg.BundleDir
+	)
+
 	sr, err := fsys.Open("metafile.server.json")
 	if err != nil {
 		return nil, err
@@ -117,7 +122,7 @@ func devBundleFromEntrypoint(fsys fs.FS, entrypoint string) (*Bundle, error) {
 			continue
 		}
 
-		outPathRel, err := filepath.Rel(cfg.BundleDir, outPath)
+		outPathRel, err := filepath.Rel(dir, outPath)
 		if err != nil {
 			return nil, err
 		}
@@ -138,7 +143,7 @@ func devBundleFromEntrypoint(fsys fs.FS, entrypoint string) (*Bundle, error) {
 			log.Printf("%s: hydration script not found", o.EntryPoint)
 		}
 
-		clientPath, err = filepath.Rel(cfg.BundleDir, clientPath)
+		clientPath, err = filepath.Rel(dir, clientPath)
 		if err != nil {
 			return nil, err
 		}
@@ -181,7 +186,7 @@ func extractAndWriteSourcemaps(fsys fs.FS, outDir string) error {
 	})
 }
 
-func prepareGojaSourcemaps(isDev bool) (string, error) {
+func prepareGojaSourcemaps(fsys fs.FS, isDev bool) (string, error) {
 	if isDev {
 		return "", nil
 	}
@@ -199,7 +204,7 @@ func prepareGojaSourcemaps(isDev bool) (string, error) {
 	)
 
 	dir += string(os.PathSeparator)
-	if err := extractAndWriteSourcemaps(cfg.BundleFS, dir); err != nil {
+	if err := extractAndWriteSourcemaps(fsys, dir); err != nil {
 		return "", err
 	}
 

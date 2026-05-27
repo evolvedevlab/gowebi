@@ -11,24 +11,33 @@ import (
 
 const browserReloadScript = `
 <script>
-const ws = new WebSocket("ws://localhost:6969/ws");
-ws.onopen = () => console.log("dev websocket connected");
-ws.onmessage = (e) => {
-  if (e.data === "reload") {
-    location.reload();
-  }
-};
-ws.onclose = () => {
-  console.log("dev websocket disconnected, retrying...");
-  setTimeout(() => {
-  	setTimeout(() => {
+let disconnected = false;
+function connect() {
+  const ws = new WebSocket("ws://localhost:35729/ws");
+  ws.onopen = () => {
+    console.log("dev websocket connected");
+    if (disconnected) {
+      setTimeout(() => {
         window.location.reload();
-    }, 500);
-  }, 300);
-};
-ws.onerror = () => {
-  ws.close();
-};
+      }, 200);
+    }
+    disconnected = false;
+  };
+  ws.onmessage = (e) => {
+    if (e.data === "reload") {
+      window.location.reload();
+    }
+  };
+  ws.onclose = () => {
+    console.log("dev websocket disconnected");
+    disconnected = true;
+    setTimeout(connect, 300);
+  };
+  ws.onerror = () => {
+    ws.close();
+  };
+}
+connect();
 </script>`
 
 type wsHandler struct {
@@ -52,7 +61,7 @@ func (ws *wsHandler) start() error {
 	go ws.loop()
 
 	http.HandleFunc("/ws", ws.handleWS)
-	return http.ListenAndServe(":6969", nil)
+	return http.ListenAndServe(":35729", nil)
 }
 
 func (ws *wsHandler) handleWS(w http.ResponseWriter, r *http.Request) {
@@ -80,25 +89,19 @@ func (ws *wsHandler) loop() {
 		mod := info.ModTime()
 		if mod.After(lastMod) {
 			ws.broadcast()
-
 			lastMod = mod
 		}
 	}
 }
 
 func (ws *wsHandler) broadcast() {
-	ws.mu.RLock()
-	defer ws.mu.RUnlock()
+	ws.mu.Lock()
+	defer ws.mu.Unlock()
 
 	for conn := range ws.conns {
-		conn.WriteMessage(websocket.TextMessage, []byte("reload"))
+		if err := conn.WriteMessage(websocket.TextMessage, []byte("reload")); err != nil {
+			delete(ws.conns, conn)
+			conn.Close()
+		}
 	}
-}
-
-func (ws *wsHandler) removeConn(conn *websocket.Conn) error {
-	ws.mu.Lock()
-	delete(ws.conns, conn)
-	ws.mu.Unlock()
-
-	return conn.Close()
 }

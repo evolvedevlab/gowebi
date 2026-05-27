@@ -19,7 +19,6 @@ const Home = (props) => {
       <button onClick={() => setCount((c) => c + 1)}>Incr</button>
       {isMounted() ? <Test /> : "loading..."}
       {JSON.stringify(props)}
-      Bye
     </div>
   );
 };

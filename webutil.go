@@ -8,5 +8,5 @@ import (
 //
 // example: http.Handle("/client/", ServeBundle())
 func ServeBundle() http.Handler {
-	return http.FileServerFS(cfg.BundleFS)
+	return http.FileServerFS(gCfg.BundleFS)
 }

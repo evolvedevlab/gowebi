@@ -3,7 +3,6 @@ package gowebi
 import (
 	"encoding/json"
 	"flag"
-	"fmt"
 	"html/template"
 	"io/fs"
 	"log"
@@ -12,7 +11,7 @@ import (
 	"runtime"
 )
 
-var cfg *Config
+var gCfg *Config
 
 type Config struct {
 	BundleDir string `json:"bundleDir"`
@@ -43,10 +42,27 @@ func (gw *GoWebi) BundleDir() string {
 	return gw.cfg.BundleDir
 }
 
-func New(c *Config) (*GoWebi, error) {
-	// set global cfg
-	cfg = c
+func New(opts ...OptFunc) (*GoWebi, error) {
+	c := defaultConfig()
+	for _, fn := range opts {
+		fn(c)
+	}
+	// setting global config
+	gCfg = c
 
+	mustHandleInternalCmd(c)
+	return createAndInit(c)
+}
+
+func NewWithConfig(c *Config) (*GoWebi, error) {
+	// setting global config
+	gCfg = c
+
+	mustHandleInternalCmd(c)
+	return createAndInit(c)
+}
+
+func createAndInit(cfg *Config) (*GoWebi, error) {
 	if err := initBundleFS(cfg); err != nil {
 		return nil, err
 	}
@@ -119,14 +135,13 @@ func initRenderer(cfg *Config, bundles map[string]*Bundle) (Renderer, error) {
 }
 
 func initBundleFS(cfg *Config) error {
-	if cfg.IsDev {
+	if cfg.IsDev || cfg.BundleFS == nil {
+		if _, err := os.Stat(cfg.BundleDir); err != nil {
+			return err
+		}
+
 		cfg.BundleFS = os.DirFS(cfg.BundleDir)
 		return nil
-	}
-
-	// production
-	if cfg.BundleFS == nil {
-		return fmt.Errorf("BundleFS is required in production")
 	}
 
 	var err error
@@ -135,7 +150,7 @@ func initBundleFS(cfg *Config) error {
 	return err
 }
 
-func MustHandleInternalCmd(cfg *Config) {
+func mustHandleInternalCmd(cfg *Config) {
 	fgs := flag.NewFlagSet("gowebi", flag.ContinueOnError)
 
 	esbuildCfg := fgs.Bool("gowebi-esbuild-config", false, "")

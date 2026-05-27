@@ -46,7 +46,7 @@ func runWithVM(vm *goja.Runtime, program *goja.Program) (*Runtime, error) {
 // runVM runs the loaded program in a new vm.
 // meta function is optional and can be nil.
 func runVM(program *goja.Program) (*Runtime, error) {
-	vm := newVM(cfg.SuppressConsoleLogs)
+	vm := newVM(gCfg.SuppressConsoleLogs)
 
 	_, err := vm.RunProgram(program)
 	if err != nil {

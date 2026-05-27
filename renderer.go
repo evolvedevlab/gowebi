@@ -37,7 +37,7 @@ func newPool(size int, bundles map[string]*Bundle) (*pool, error) {
 	}
 
 	for i := 0; i < size; i++ {
-		vm := newVM(cfg.SuppressConsoleLogs)
+		vm := newVM(gCfg.SuppressConsoleLogs)
 		pages := make(map[string]*Runtime, len(bundles))
 
 		for outPath, b := range bundles {
@@ -137,7 +137,14 @@ func newDevRenderer(cfg *Config, tmpl *template.Template) *devRender {
 }
 
 func (dr *devRender) Render(ctx context.Context, w http.ResponseWriter, status int, opts RenderOptions) error {
-	b, err := devBundleFromEntrypoint(dr.cfg.BundleFS, opts.Name)
+	// needed for index.html reload
+	// dont use dr.tmpl cache for now
+	tmpl, err := template.ParseFS(dr.cfg.BundleFS, "index.html")
+	if err != nil {
+		return err
+	}
+
+	b, err := devBundleFromEntrypoint(dr.cfg, opts.Name)
 	if err != nil {
 		return err
 	}
@@ -146,7 +153,7 @@ func (dr *devRender) Render(ctx context.Context, w http.ResponseWriter, status i
 		opts.Name: b,
 	}
 
-	r := NewRenderer(bundles, dr.tmpl, dr.cfg.IsDev)
+	r := NewRenderer(bundles, tmpl, dr.cfg.IsDev)
 	return r.Render(ctx, w, status, opts)
 }
 
