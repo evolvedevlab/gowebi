@@ -39,7 +39,7 @@ func BenchmarkRender(b *testing.B) {
 			"test": {Program: program},
 		},
 		template.Must(template.New("").Parse(testTmpl)),
-		true,
+		false, true,
 	)
 
 	b.ResetTimer()

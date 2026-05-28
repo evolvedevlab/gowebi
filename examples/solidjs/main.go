@@ -18,7 +18,7 @@ var dist embed.FS
 
 // run: make watch
 func main() {
-	app, err := gowebi.New(gowebi.WithBundleFS(dist), gowebi.WithUnsafePoolMode(true))
+	app, err := gowebi.New(gowebi.WithBundleFS(dist))
 	if err != nil {
 		log.Fatal(err)
 	}

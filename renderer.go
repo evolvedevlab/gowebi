@@ -153,7 +153,7 @@ func (dr *devRender) Render(ctx context.Context, w http.ResponseWriter, status i
 		opts.Name: b,
 	}
 
-	r := NewRenderer(bundles, tmpl, dr.cfg.IsDev)
+	r := NewRenderer(bundles, tmpl, dr.cfg.SuppressConsoleLogs, dr.cfg.IsDev)
 	return r.Render(ctx, w, status, opts)
 }
 

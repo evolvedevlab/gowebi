@@ -9,18 +9,20 @@ import (
 )
 
 type PoolRender struct {
-	pool      *pool
-	bundleMap map[string]*Bundle
-	tmpl      *template.Template
-	isDev     bool
+	pool                *pool
+	bundleMap           map[string]*Bundle
+	tmpl                *template.Template
+	isDev               bool
+	suppressConsoleLogs bool
 }
 
-func NewPooledRenderer(pool *pool, bMap map[string]*Bundle, tmpl *template.Template, isDev bool) *PoolRender {
+func NewPooledRenderer(pool *pool, bMap map[string]*Bundle, tmpl *template.Template, suppressConsoleLogs, isDev bool) *PoolRender {
 	return &PoolRender{
-		pool:      pool,
-		bundleMap: bMap,
-		tmpl:      tmpl,
-		isDev:     isDev,
+		pool:                pool,
+		bundleMap:           bMap,
+		tmpl:                tmpl,
+		suppressConsoleLogs: suppressConsoleLogs,
+		isDev:               isDev,
 	}
 }
 
@@ -30,6 +32,9 @@ func (r *PoolRender) Render(ctx context.Context, w http.ResponseWriter, status i
 		return fmt.Errorf("request cancelled: %w", err)
 	}
 	// defer r.pool.put(pl) // better to do it before network Write
+
+	clear := attachVMInterrupt(ctx, pi.vm)
+	defer clear()
 
 	b, ok := r.bundleMap[opts.Name]
 	if !ok {

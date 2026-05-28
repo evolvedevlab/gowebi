@@ -34,7 +34,7 @@ func BenchmarkUnsafeRender(b *testing.B) {
 		pool,
 		bm,
 		template.Must(template.New("").Parse(testTmpl)),
-		true,
+		false, true,
 	)
 
 	b.ResetTimer()

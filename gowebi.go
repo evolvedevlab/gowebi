@@ -127,11 +127,11 @@ func initRenderer(cfg *Config, bundles map[string]*Bundle) (Renderer, error) {
 			return nil, err
 		}
 
-		return NewPooledRenderer(pool, bundles, tmpl, cfg.IsDev), nil
+		return NewPooledRenderer(pool, bundles, tmpl, cfg.SuppressConsoleLogs, cfg.IsDev), nil
 	}
 
 	// normal mode
-	return NewRenderer(bundles, tmpl, cfg.IsDev), nil
+	return NewRenderer(bundles, tmpl, cfg.SuppressConsoleLogs, cfg.IsDev), nil
 }
 
 func initBundleFS(cfg *Config) error {

@@ -11,14 +11,17 @@ import (
 type Render struct {
 	bundleMap map[string]*Bundle
 	tmpl      *template.Template
-	isDev     bool
+
+	suppressConsoleLogs bool
+	isDev               bool
 }
 
-func NewRenderer(bMap map[string]*Bundle, tmpl *template.Template, isDev bool) *Render {
+func NewRenderer(bMap map[string]*Bundle, tmpl *template.Template, suppressConsoleLogs, isDev bool) *Render {
 	return &Render{
-		bundleMap: bMap,
-		tmpl:      tmpl,
-		isDev:     isDev,
+		bundleMap:           bMap,
+		tmpl:                tmpl,
+		isDev:               isDev,
+		suppressConsoleLogs: suppressConsoleLogs,
 	}
 }
 
@@ -28,7 +31,11 @@ func (r *Render) Render(ctx context.Context, w http.ResponseWriter, status int, 
 		return fmt.Errorf("page bundle not found")
 	}
 
-	runtime, err := runVM(b.Program)
+	vm := newVM(r.suppressConsoleLogs)
+	clear := attachVMInterrupt(ctx, vm)
+	defer clear()
+
+	runtime, err := runWithVM(vm, b.Program)
 	if err != nil {
 		if r.isDev {
 			return writeDebugError(w, err)

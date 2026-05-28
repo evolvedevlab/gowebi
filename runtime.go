@@ -1,6 +1,7 @@
 package gowebi
 
 import (
+	"context"
 	"fmt"
 	"log"
 
@@ -43,36 +44,21 @@ func runWithVM(vm *goja.Runtime, program *goja.Program) (*Runtime, error) {
 	}, nil
 }
 
-// runVM runs the loaded program in a new vm.
-// meta function is optional and can be nil.
-func runVM(program *goja.Program) (*Runtime, error) {
-	vm := newVM(gCfg.SuppressConsoleLogs)
-
-	_, err := vm.RunProgram(program)
-	if err != nil {
-		return nil, fmt.Errorf("failed to run program: %w", err)
-	}
-
-	render, ok := goja.AssertFunction(vm.Get("render"))
-	if !ok {
-		return nil, fmt.Errorf("failed to get the render function from vm")
-	}
-
-	meta, _ := goja.AssertFunction(vm.Get("meta"))
-
-	return &Runtime{
-		VM:     vm,
-		Render: render,
-		Meta:   meta,
-	}, nil
-}
-
 func newVM(suppressConsoleLogs bool) *goja.Runtime {
 	vm := goja.New()
 	vm.SetFieldNameMapper(goja.TagFieldNameMapper("json", true))
 
+	_, _ = vm.RunString(`
+Object.freeze(Object);
+Object.freeze(Object.prototype);
+Object.freeze(Array.prototype);
+Object.freeze(Function.prototype);
+`)
+
 	vm.Set("setTimeout", undefinedGojaFn)
 	vm.Set("clearTimeout", undefinedGojaFn)
+	vm.Set("eval", undefinedGojaFn)
+	vm.Set("Function", undefinedGojaFn)
 	if suppressConsoleLogs {
 		l := func(...any) {}
 		vm.Set("console", map[string]func(...any){
@@ -89,4 +75,20 @@ func newVM(suppressConsoleLogs bool) *goja.Runtime {
 	}
 
 	return vm
+}
+
+func attachVMInterrupt(ctx context.Context, vm *goja.Runtime) func() {
+	done := make(chan struct{})
+
+	go func() {
+		select {
+		case <-ctx.Done():
+			vm.Interrupt(ctx.Err())
+		case <-done:
+		}
+	}()
+
+	return func() {
+		close(done)
+	}
 }
