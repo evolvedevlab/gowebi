@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"time"
 )
 
 var gCfg *Config
@@ -122,7 +123,12 @@ func initRenderer(cfg *Config, bundles map[string]*Bundle) (Renderer, error) {
 			cfg.UnsafePoolSize = runtime.GOMAXPROCS(0)
 		}
 
-		pool, err := newPool(cfg.UnsafePoolSize, bundles)
+		pool, err := newPool(
+			cfg.UnsafePoolSize,
+			bundles,
+			time.Second*10,
+			cfg.SuppressConsoleLogs,
+		)
 		if err != nil {
 			return nil, err
 		}

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"html/template"
 	"net/http"
+	"time"
 
 	"github.com/dop251/goja"
 )
@@ -31,18 +32,26 @@ type poolItem struct {
 	pages map[string]*Runtime
 }
 
-func newPool(size int, bundles map[string]*Bundle) (*pool, error) {
+func newPool(size int, bundles map[string]*Bundle, poolWarmupTimeout time.Duration, suppressConsoleLogs bool) (*pool, error) {
 	pool := &pool{
 		ch: make(chan *poolItem, size),
 	}
 
 	for i := 0; i < size; i++ {
-		vm := newVM(gCfg.SuppressConsoleLogs)
-		pages := make(map[string]*Runtime, len(bundles))
+		var (
+			vm    = newVM(suppressConsoleLogs)
+			pages = make(map[string]*Runtime, len(bundles))
+		)
+
+		timer := time.AfterFunc(poolWarmupTimeout, func() {
+			vm.Interrupt(context.DeadlineExceeded)
+		})
 
 		for outPath, b := range bundles {
 			runtime, err := runWithVM(vm, b.Program)
 			if err != nil {
+				timer.Stop()
+
 				return nil, err
 			}
 
@@ -53,6 +62,7 @@ func newPool(size int, bundles map[string]*Bundle) (*pool, error) {
 			}
 		}
 
+		timer.Stop()
 		pool.ch <- &poolItem{
 			vm:    vm,
 			pages: pages,

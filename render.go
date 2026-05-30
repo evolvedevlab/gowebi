@@ -26,6 +26,10 @@ func NewRenderer(bMap map[string]*Bundle, tmpl *template.Template, suppressConso
 }
 
 func (r *Render) Render(ctx context.Context, w http.ResponseWriter, status int, opts RenderOptions) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+
 	b, ok := r.bundleMap[opts.Name]
 	if !ok {
 		return fmt.Errorf("page bundle not found")
@@ -33,7 +37,10 @@ func (r *Render) Render(ctx context.Context, w http.ResponseWriter, status int, 
 
 	vm := newVM(r.suppressConsoleLogs)
 	clear := attachVMInterrupt(ctx, vm)
-	defer clear()
+	defer func() {
+		clear()
+		vm.ClearInterrupt()
+	}()
 
 	runtime, err := runWithVM(vm, b.Program)
 	if err != nil {

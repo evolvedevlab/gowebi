@@ -23,6 +23,7 @@ type Runtime struct {
 
 // runWithVM runs the loaded program in the provided vm.
 // meta function is optional and can be nil.
+//
 // WARN: re-using existing vms can leak data across requests.
 func runWithVM(vm *goja.Runtime, program *goja.Program) (*Runtime, error) {
 	_, err := vm.RunProgram(program)
@@ -49,16 +50,17 @@ func newVM(suppressConsoleLogs bool) *goja.Runtime {
 	vm.SetFieldNameMapper(goja.TagFieldNameMapper("json", true))
 
 	_, _ = vm.RunString(`
-Object.freeze(Object);
-Object.freeze(Object.prototype);
-Object.freeze(Array.prototype);
-Object.freeze(Function.prototype);
-`)
+	Object.freeze(Object);
+	Object.freeze(Object.prototype);
+	Object.freeze(Array.prototype);
+	Object.freeze(Function.prototype);
+	`)
 
 	vm.Set("setTimeout", undefinedGojaFn)
 	vm.Set("clearTimeout", undefinedGojaFn)
 	vm.Set("eval", undefinedGojaFn)
 	vm.Set("Function", undefinedGojaFn)
+	vm.Set("process", undefinedGojaFn)
 	if suppressConsoleLogs {
 		l := func(...any) {}
 		vm.Set("console", map[string]func(...any){
@@ -78,9 +80,14 @@ Object.freeze(Function.prototype);
 }
 
 func attachVMInterrupt(ctx context.Context, vm *goja.Runtime) func() {
-	done := make(chan struct{})
+	var (
+		done   = make(chan struct{})
+		exited = make(chan struct{})
+	)
 
 	go func() {
+		defer close(exited)
+
 		select {
 		case <-ctx.Done():
 			vm.Interrupt(ctx.Err())
@@ -90,5 +97,6 @@ func attachVMInterrupt(ctx context.Context, vm *goja.Runtime) func() {
 
 	return func() {
 		close(done)
+		<-exited
 	}
 }

@@ -1,0 +1,38 @@
+{
+  "title": "Benchmark App",
+  "sections": [
+    {
+      "title": "Section 1",
+      "items": [
+        {
+          "id": "1",
+          "title": "Item 1",
+          "description": "A reasonably long description for benchmarking purposes.",
+          "tags": ["solid", "goja", "ssr", "benchmark"],
+          "comments": [
+            {
+              "author": "alice",
+              "body": "First comment"
+            },
+            {
+              "author": "bob",
+              "body": "Second comment"
+            }
+          ]
+        },
+        {
+          "id": "2",
+          "title": "Item 2",
+          "description": "Another description.",
+          "tags": ["web", "render"],
+          "comments": [
+            {
+              "author": "charlie",
+              "body": "Looks good"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

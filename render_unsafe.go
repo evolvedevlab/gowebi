@@ -27,43 +27,17 @@ func NewPooledRenderer(pool *pool, bMap map[string]*Bundle, tmpl *template.Templ
 }
 
 func (r *PoolRender) Render(ctx context.Context, w http.ResponseWriter, status int, opts RenderOptions) error {
-	pi, err := r.pool.get(ctx)
-	if err != nil {
-		return fmt.Errorf("request cancelled: %w", err)
-	}
-	// defer r.pool.put(pl) // better to do it before network Write
-
-	clear := attachVMInterrupt(ctx, pi.vm)
-	defer clear()
-
-	b, ok := r.bundleMap[opts.Name]
-	if !ok {
-		return fmt.Errorf("page bundle not found")
+	if err := ctx.Err(); err != nil {
+		return err
 	}
 
-	runtime := pi.pages[opts.Name]
-
-	appHtml, err := getStaticHTML(runtime, opts.Props)
+	rd, err := r.getRenderData(ctx, opts)
 	if err != nil {
 		if r.isDev {
 			return writeDebugError(w, err)
 		}
 		return err
 	}
-
-	metadata := opts.Meta
-	if metadata == nil {
-		metadata, err = getMetadata(runtime, opts.Props)
-		if err != nil {
-			if r.isDev {
-				return writeDebugError(w, err)
-			}
-			return err
-		}
-	}
-
-	// return back to the pool
-	r.pool.put(pi)
 
 	raw, err := json.Marshal(opts.Props)
 	if err != nil {
@@ -75,12 +49,58 @@ func (r *PoolRender) Render(ctx context.Context, w http.ResponseWriter, status i
 	w.Header().Add("Content-Type", "text/html; charset=utf8")
 	w.WriteHeader(status)
 	return r.tmpl.Execute(w, map[string]any{
-		"Meta":               metadata,
+		"Meta":               rd.Metadata,
 		"Script":             template.HTML(script),
-		"App":                template.HTML(appHtml),
-		"HydrationScriptSrc": b.ClientPath,
+		"App":                template.HTML(rd.AppHTML),
+		"HydrationScriptSrc": rd.ClientPath,
 		"NoHydrate":          opts.NoHydrate,
 		"IsDev":              r.isDev,
 		"Props":              opts.Props,
 	})
+}
+
+type renderData struct {
+	AppHTML    string
+	Metadata   map[string]string
+	ClientPath string
+}
+
+func (r *PoolRender) getRenderData(ctx context.Context, opts RenderOptions) (*renderData, error) {
+	pi, err := r.pool.get(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("request cancelled: %w", err)
+	}
+
+	clear := attachVMInterrupt(ctx, pi.vm)
+	defer func() {
+		clear()
+		pi.vm.ClearInterrupt()
+		r.pool.put(pi)
+	}()
+
+	b, ok := r.bundleMap[opts.Name]
+	if !ok {
+		return nil, fmt.Errorf("page bundle not found")
+	}
+
+	runtime := pi.pages[opts.Name]
+
+	appHTML, err := getStaticHTML(runtime, opts.Props)
+	if err != nil {
+		return nil, err
+	}
+
+	metadata := opts.Meta
+	if metadata == nil {
+		metadata, err = getMetadata(runtime, opts.Props)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return &renderData{
+		AppHTML:    appHTML,
+		Metadata:   metadata,
+		ClientPath: b.ClientPath,
+	}, nil
 }

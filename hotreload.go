@@ -12,6 +12,7 @@ import (
 const browserReloadScript = `
 <script>
 let disconnected = false;
+let retryCount = 0;
 function connect() {
   const ws = new WebSocket("ws://localhost:35729/ws");
   ws.onopen = () => {
@@ -22,6 +23,7 @@ function connect() {
       }, 200);
     }
     disconnected = false;
+    retryCount = 0;
   };
   ws.onmessage = (e) => {
     if (e.data === "reload") {
@@ -31,7 +33,8 @@ function connect() {
   ws.onclose = () => {
     console.log("dev websocket disconnected");
     disconnected = true;
-    setTimeout(connect, 300);
+    retryCount++;
+    retryCount <= 20 && setTimeout(connect, 300);
   };
   ws.onerror = () => {
     ws.close();
