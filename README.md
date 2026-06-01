@@ -28,13 +28,19 @@ Node.js is only required for bundling (development).
 
 GoWebi requires a small amount of frontend setup and build configuration.
 
-For now, the easiest way to get started is from the SolidJS example:
+For now, the easiest way to get started is to use the CLI.
 
 ```bash
-git clone https://github.com/evolvedevlab/gowebi && cd gowebi && rm -rf .git && find . -mindepth 1 -maxdepth 1 ! -name examples -exec rm -rf {} \; && mv examples/solidjs/* . && rm -rf examples
+go install github.com/evolvedevlab/gowebi/cmd/gowebi@latest
 ```
 
-This will leave you with a ready-to-use SolidJS project. **Check Makefile for commands.***
+Create a new project:
+
+```bash
+gowebi -name solidjs -path ./myproject
+```
+
+This will leave you with a ready-to-use project. **Check Makefile for commands.**
 
 ## Installation
 
